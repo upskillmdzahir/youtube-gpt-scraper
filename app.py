@@ -23,6 +23,7 @@ def get_video_info(url):
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
+        'cookies': 'cookies.txt',  # ✅ Add this line
     }
     
     try:
@@ -32,6 +33,7 @@ def get_video_info(url):
             # Process formats to make them more readable
             video_formats = []
             audio_formats = []
+
             
             for f in info.get('formats', []):
                 format_note = f.get('format_note', '')
