@@ -599,12 +599,28 @@ def download_video():
     audio_format_id = request.form.get('audio_format')
     output_ext = request.form.get('output_ext', 'mp4')
     download_type = request.form.get('download_type', 'combined')  # Default to combined
-    
-    # Generate a unique session ID if not exists
+
     if 'session_id' not in session:
         session['session_id'] = os.urandom(16).hex()
     
     session_id = session['session_id']
+    
+    ydl_opts = {
+        'cookies': 'cookies.txt',  # ✅ This line fixes the bot-check error
+        'outtmpl': f'downloads/{session_id}/%(title)s.%(ext)s',
+        'quiet': True,
+        'no_warnings': True,
+        'format': 'bestvideo+bestaudio/best',
+        'merge_output_format': output_ext
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            return jsonify({'status': 'success', 'title': info.get('title', 'Downloaded')})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
     
     # Validate depending on download type
     if download_type == 'video_only':
