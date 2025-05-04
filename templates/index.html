@@ -1,0 +1,778 @@
+{% extends 'base.html' %}
+
+{% block title %}Video Downloader & Analyzer{% endblock %}
+
+{% block content %}
+<div class="hero-section py-5 text-center">
+    <div class="container">
+        <h1 class="display-5 fw-bold mb-4">Smart Video Downloader</h1>
+        <p class="lead mb-5">Download videos at the highest quality and get instant transcripts. Supports multiple platforms including YouTube, Vimeo, and more.</p>
+        
+        <!-- Main Form -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card bg-dark">
+                    <div class="card-body">
+                        <div class="input-group mb-3">
+                            <input type="text" id="video-url" class="form-control form-control-lg" placeholder="Paste video URL here...">
+                            <button id="fetch-btn" class="btn btn-primary btn-lg">
+                                <i class="fas fa-search me-2"></i>Fetch Video
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-4">
+    <!-- Video Info Container (hidden initially) -->
+    <div id="video-info-container" class="card mb-4 d-none">
+        <div class="card-header bg-dark">
+            <h3 class="mb-0">Video Information</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <img id="video-thumbnail" src="" class="img-fluid rounded" alt="Video Thumbnail">
+                </div>
+                <div class="col-md-8">
+                    <h4 id="video-title" class="mb-2"></h4>
+                    <p id="video-uploader" class="text-muted mb-1"></p>
+                    <p id="video-duration" class="text-muted mb-3"></p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="h6 mb-2">Video Quality:</h5>
+                            <!-- Video Quality Dropdown -->
+                            <div class="mb-3">
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="videoDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span id="selected-video-text">Select quality</span>
+                                        <span id="selected-video-size" class="badge bg-secondary"></span>
+                                    </button>
+                                    <ul class="dropdown-menu w-100 dropdown-menu-dark" id="video-formats-dropdown" style="max-height: 250px; overflow-y: auto;">
+                                        <li><div class="placeholder-glow p-2">
+                                            <span class="placeholder col-12" style="height: 25px;"></span>
+                                            <span class="placeholder col-12 mt-2" style="height: 25px;"></span>
+                                        </div></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="h6 mb-2">Audio Quality:</h5>
+                            <!-- Audio Quality Dropdown -->
+                            <div class="mb-3">
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="audioDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span id="selected-audio-text">Select quality</span>
+                                        <span id="selected-audio-size" class="badge bg-secondary"></span>
+                                    </button>
+                                    <ul class="dropdown-menu w-100 dropdown-menu-dark" id="audio-formats-dropdown" style="max-height: 250px; overflow-y: auto;">
+                                        <li><div class="placeholder-glow p-2">
+                                            <span class="placeholder col-12" style="height: 25px;"></span>
+                                            <span class="placeholder col-12 mt-2" style="height: 25px;"></span>
+                                        </div></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Original format containers (hidden) -->
+                        <div class="d-none">
+                            <div id="video-formats" class="list-group"></div>
+                            <div id="audio-formats" class="list-group"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Selection Summary (hidden initially) -->
+                    <div id="selection-summary" class="mb-3 d-none">
+                        <h5 class="h6 mb-2">Selected Options:</h5>
+                        <div class="card bg-dark mb-3">
+                            <div class="card-body py-2">
+                                <div class="row">
+                                    <div class="col-md-6" id="video-selection-text">
+                                        <small class="text-muted">Video: <span>Not selected</span></small>
+                                    </div>
+                                    <div class="col-md-6" id="audio-selection-text">
+                                        <small class="text-muted">Audio: <span>Not selected</span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Download Type Selection -->
+                    <div class="mb-3">
+                        <h5 class="h6 mb-2">Download Type:</h5>
+                        <div class="card bg-dark mb-3">
+                            <div class="card-body py-2">
+                                <div class="btn-group w-100" role="group" aria-label="Download type">
+                                    <input type="radio" class="btn-check" name="download-type" id="combined" value="combined" checked>
+                                    <label class="btn btn-outline-primary" for="combined">
+                                        <i class="fas fa-film me-1"></i> Video + Audio
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="download-type" id="video-only" value="video_only">
+                                    <label class="btn btn-outline-primary" for="video-only">
+                                        <i class="fas fa-video me-1"></i> Video Only
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="download-type" id="audio-only" value="audio_only">
+                                    <label class="btn btn-outline-primary" for="audio-only">
+                                        <i class="fas fa-music me-1"></i> Audio Only
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="convert-btn" class="btn btn-success btn-lg d-none">
+                        <i class="fas fa-cog me-2"></i>Convert & Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Container (hidden initially) -->
+    <div id="loading-container" class="card mb-4 d-none">
+        <div class="card-body text-center p-5">
+            <h3 id="loading-title" class="mb-4">Processing Your Video</h3>
+            <div class="progress mb-4">
+                <div id="download-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+            <p id="download-status" class="lead mb-0">Starting download...</p>
+        </div>
+    </div>
+    
+    <!-- Result Container (hidden initially) -->
+    <div id="result-container" class="d-none">
+        <div class="row">
+            <div class="col-md-6">
+                <!-- Download Button Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="h5 mb-0">Your Video is Ready!</h3>
+                    </div>
+                    <div class="card-body text-center">
+                        <a id="download-link" href="#" class="btn btn-success btn-lg">
+                            <i class="fas fa-download me-2"></i>Download Video
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <!-- Transcript (if available) -->
+                <div id="transcript-container" class="card d-none">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                        <h3 class="h5 mb-0">Video Transcript</h3>
+                        <button id="copy-transcript-btn" class="btn btn-sm btn-outline-light">
+                            <i class="fas fa-copy me-1"></i>Copy Full Transcript
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="transcript-preview bg-dark p-3" style="max-height: 500px; overflow-y: auto;">
+                            <p id="transcript-text" class="mb-0 text-light"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="row justify-content-center mt-5">
+    <div class="col-lg-10">
+        <h2 class="text-center mb-5">Features</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <h3 class="h5">Multi-Platform Support</h3>
+                    <p>Download from YouTube, Vimeo, Dailymotion, and many other video platforms.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <h3 class="h5">Quality Selection</h3>
+                    <p>Choose from available video and audio qualities for the best experience.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h3 class="h5">Transcript Extraction</h3>
+                    <p>Get clean, formatted video transcripts that are easy to read and copy.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add global error handler for debugging
+    window.onerror = function(message, source, lineno, colno, error) {
+        console.log('Global error handler:', message);
+        console.log('Source:', source);
+        console.log('Line:', lineno);
+        console.log('Column:', colno);
+        console.log('Error object:', error);
+        return true; // Prevents default error handling
+    };
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM fully loaded');
+        
+        // Elements
+        let videoUrlInput, fetchButton, videoInfoContainer, videoThumbnail, 
+            videoTitle, videoUploader, videoDuration, videoFormatsContainer, 
+            audioFormatsContainer, convertButton, loadingContainer, 
+            downloadProgressBar, downloadStatus, resultContainer, downloadLink;
+        
+        try {
+            videoUrlInput = document.getElementById('video-url');
+            fetchButton = document.getElementById('fetch-btn');
+            videoInfoContainer = document.getElementById('video-info-container');
+            videoThumbnail = document.getElementById('video-thumbnail');
+            videoTitle = document.getElementById('video-title');
+            videoUploader = document.getElementById('video-uploader');
+            videoDuration = document.getElementById('video-duration');
+            videoFormatsContainer = document.getElementById('video-formats');
+            audioFormatsContainer = document.getElementById('audio-formats');
+            convertButton = document.getElementById('convert-btn');
+            loadingContainer = document.getElementById('loading-container');
+            downloadProgressBar = document.getElementById('download-progress-bar');
+            downloadStatus = document.getElementById('download-status');
+            resultContainer = document.getElementById('result-container');
+            downloadLink = document.getElementById('download-link');
+            
+            console.log('All DOM elements loaded successfully');
+        } catch (error) {
+            console.error('Error loading DOM elements:', error);
+        }
+        
+        // Selected formats
+        let selectedVideoFormat = null;
+        let selectedAudioFormat = null;
+        
+        // Helper function to format duration
+        function formatDuration(seconds) {
+            if (!seconds) return 'Unknown duration';
+            
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            
+            let result = '';
+            if (hours > 0) {
+                result += `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                result += `${minutes}:${secs.toString().padStart(2, '0')}`;
+            }
+            
+            return result;
+        }
+        
+        // Fetch video info
+        fetchButton.addEventListener('click', function() {
+            const url = videoUrlInput.value.trim();
+            
+            if (!url) {
+                alert('Please enter a video URL');
+                return;
+            }
+            
+            // Show loading
+            fetchButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Loading...';
+            fetchButton.disabled = true;
+            
+            // Clear previous selections
+            selectedVideoFormat = null;
+            selectedAudioFormat = null;
+            convertButton.classList.add('d-none');
+            
+            // Reset other containers
+            videoInfoContainer.classList.add('d-none');
+            loadingContainer.classList.add('d-none');
+            resultContainer.classList.add('d-none');
+            
+            // Make API request
+            const formData = new FormData();
+            formData.append('url', url);
+            
+            fetch('/get_video_info', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset button
+                fetchButton.innerHTML = '<i class="fas fa-search me-2"></i>Fetch Video';
+                fetchButton.disabled = false;
+                
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                // Update video details
+                videoThumbnail.src = data.thumbnail || '';
+                videoTitle.textContent = data.title || 'Unknown Title';
+                videoUploader.textContent = data.uploader ? `Uploaded by: ${data.uploader}` : '';
+                videoDuration.textContent = data.duration ? `Duration: ${formatDuration(data.duration)}` : '';
+                
+                // Populate video formats
+                videoFormatsContainer.innerHTML = '';
+                const videoDropdownList = document.getElementById('video-formats-dropdown');
+                videoDropdownList.innerHTML = '';
+                
+                if (data.video_formats && data.video_formats.length > 0) {
+                    // Filter out formats below 480p and sort by quality (higher first)
+                    const filteredFormats = data.video_formats.filter(format => {
+                        // Extract height from quality string (e.g., "720p" -> 720)
+                        const heightMatch = format.quality.match(/(\d+)p/);
+                        const height = heightMatch ? parseInt(heightMatch[1]) : 0;
+                        
+                        // Only include 480p and higher
+                        return height >= 480;
+                    });
+                    
+                    const sortedFormats = [...filteredFormats].sort((a, b) => {
+                        const heightA = parseInt(a.quality.replace('p', '')) || 0;
+                        const heightB = parseInt(b.quality.replace('p', '')) || 0;
+                        return heightB - heightA;
+                    });
+                    
+                    // Populate dropdown
+                    sortedFormats.forEach(format => {
+                        const dropdownItem = document.createElement('li');
+                        const link = document.createElement('a');
+                        link.className = 'dropdown-item d-flex justify-content-between';
+                        link.href = '#';
+                        link.setAttribute('data-format-id', format.format_id);
+                        
+                        // Use the clean display text from the backend if available, otherwise generate it
+                        const displayText = format.display_text || (format.quality + ` (${format.ext})`);
+                        
+                        link.innerHTML = `<span>${displayText}</span>`;
+                        
+                        // Store a simpler resolution text for the dropdown button
+                        const resolution = format.quality;
+                        
+                        link.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            
+                            // Update dropdown button text
+                            document.getElementById('selected-video-text').textContent = resolution;
+                            document.getElementById('selected-video-size').textContent = format.size;
+                            
+                            // Store selected format
+                            selectedVideoFormat = format.format_id;
+                            
+                            // Store selection in hidden element
+                            document.querySelector('#video-selection-text span').textContent = `${resolution} (${format.size})`;
+                            
+                            // Show selection summary
+                            document.getElementById('selection-summary').classList.remove('d-none');
+                            
+                            // Enable convert button if both formats selected
+                            if (selectedVideoFormat && selectedAudioFormat) {
+                                convertButton.classList.remove('d-none');
+                            }
+                        });
+                        
+                        dropdownItem.appendChild(link);
+                        videoDropdownList.appendChild(dropdownItem);
+                        
+                        // Also add to hidden container for compatibility
+                        const listItem = document.createElement('button');
+                        listItem.className = 'list-group-item d-none';
+                        listItem.setAttribute('data-format-id', format.format_id);
+                        videoFormatsContainer.appendChild(listItem);
+                    });
+                    
+                    // Auto-select the highest quality option
+                    const defaultOption = videoDropdownList.querySelector('a[data-format-id]');
+                    if (defaultOption) {
+                        defaultOption.click();
+                    }
+                } else {
+                    videoDropdownList.innerHTML = '<li><a class="dropdown-item text-muted">No formats available</a></li>';
+                }
+                
+                // Populate audio formats
+                audioFormatsContainer.innerHTML = '';
+                const audioDropdownList = document.getElementById('audio-formats-dropdown');
+                audioDropdownList.innerHTML = '';
+                
+                if (data.audio_formats && data.audio_formats.length > 0) {
+                    // The audio formats are already sorted by quality on the backend
+                    const sortedFormats = [...data.audio_formats];
+                    
+                    // Populate dropdown
+                    sortedFormats.forEach(format => {
+                        const dropdownItem = document.createElement('li');
+                        const link = document.createElement('a');
+                        
+                        // Add quality class for better visualization
+                        const quality = format.quality || '';
+                        const bitrate = parseFloat(quality.replace('kbps', '').trim()) || 0;
+                        
+                        // Determine quality class
+                        let qualityClass = '';
+                        if (bitrate >= 256) {
+                            qualityClass = 'text-success fw-bold'; // High quality
+                        } else if (bitrate >= 192) {
+                            qualityClass = 'text-info'; // Good quality
+                        }
+                        
+                        link.className = `dropdown-item d-flex justify-content-between ${qualityClass}`;
+                        link.href = '#';
+                        link.setAttribute('data-format-id', format.format_id);
+                        
+                        // Use the display_text field from backend if available
+                        const displayText = format.display_text || `${format.quality} (${format.ext})`;
+                        
+                        // Keep a simple displayQuality for the dropdown button
+                        let displayQuality = format.quality || '';
+                        
+                        // If quality has decimal places, round to nearest integer
+                        if (bitrate && !Number.isInteger(bitrate)) {
+                            displayQuality = Math.round(bitrate) + 'kbps';
+                        }
+                        
+                        link.innerHTML = `<span>${displayText}</span>`;
+                        
+                        link.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            
+                            // Update dropdown button text
+                            document.getElementById('selected-audio-text').textContent = displayQuality;
+                            document.getElementById('selected-audio-size').textContent = format.size;
+                            
+                            // Store selected format
+                            selectedAudioFormat = format.format_id;
+                            
+                            // Store selection in hidden element for compatibility
+                            document.querySelector('#audio-selection-text span').textContent = `${displayQuality} (${format.ext})`;
+                            
+                            // Show selection summary
+                            document.getElementById('selection-summary').classList.remove('d-none');
+                            
+                            // Enable convert button if both formats selected
+                            if (selectedVideoFormat && selectedAudioFormat) {
+                                convertButton.classList.remove('d-none');
+                            }
+                        });
+                        
+                        dropdownItem.appendChild(link);
+                        audioDropdownList.appendChild(dropdownItem);
+                        
+                        // Also add to hidden container for compatibility
+                        const listItem = document.createElement('button');
+                        listItem.className = 'list-group-item d-none';
+                        listItem.setAttribute('data-format-id', format.format_id);
+                        audioFormatsContainer.appendChild(listItem);
+                    });
+                    
+                    // Auto-select the highest quality option
+                    const defaultOption = audioDropdownList.querySelector('a[data-format-id]');
+                    if (defaultOption) {
+                        defaultOption.click();
+                    }
+                } else {
+                    audioDropdownList.innerHTML = '<li><a class="dropdown-item text-muted">No formats available</a></li>';
+                }
+                
+                // Show video info
+                videoInfoContainer.classList.remove('d-none');
+                
+                // Scroll to video info
+                videoInfoContainer.scrollIntoView({ behavior: 'smooth' });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                fetchButton.innerHTML = '<i class="fas fa-search me-2"></i>Fetch Video';
+                fetchButton.disabled = false;
+                alert('An error occurred. Please try again.');
+            });
+        });
+        
+        // Handle download type changes
+        const downloadTypeRadios = document.querySelectorAll('input[name="download-type"]');
+        let currentDownloadType = 'combined';
+        
+        try {
+            // Listen for download type changes
+            downloadTypeRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    try {
+                        currentDownloadType = this.value;
+                        
+                        // These buttons might not be available until the user has fetched video info
+                        // So we need to check if they exist first
+                        const videoDropdownBtn = document.getElementById('videoDropdown');
+                        const audioDropdownBtn = document.getElementById('audioDropdown');
+                        
+                        if (!videoDropdownBtn || !audioDropdownBtn) {
+                            console.log('Dropdown buttons not yet available');
+                            return;
+                        }
+                        
+                        // Enable or disable format selections based on download type
+                        if (currentDownloadType === 'audio_only') {
+                            // For audio-only, disable video selection
+                            videoDropdownBtn.classList.add('disabled');
+                            videoDropdownBtn.setAttribute('disabled', 'disabled');
+                            audioDropdownBtn.classList.remove('disabled');
+                            audioDropdownBtn.removeAttribute('disabled');
+                            
+                            // Update convert button if audio is already selected
+                            convertButton.classList.toggle('d-none', !selectedAudioFormat);
+                            
+                        } else if (currentDownloadType === 'video_only') {
+                            // For video-only, disable audio selection
+                            videoDropdownBtn.classList.remove('disabled');
+                            videoDropdownBtn.removeAttribute('disabled');
+                            audioDropdownBtn.classList.add('disabled');
+                            audioDropdownBtn.setAttribute('disabled', 'disabled');
+                            
+                            // Update convert button if video is already selected
+                            convertButton.classList.toggle('d-none', !selectedVideoFormat);
+                            
+                        } else {
+                            // For combined, both selections are required
+                            videoDropdownBtn.classList.remove('disabled');
+                            videoDropdownBtn.removeAttribute('disabled');
+                            audioDropdownBtn.classList.remove('disabled');
+                            audioDropdownBtn.removeAttribute('disabled');
+                            
+                            // Update convert button only if both formats are selected
+                            convertButton.classList.toggle('d-none', !selectedVideoFormat || !selectedAudioFormat);
+                        }
+                    } catch (error) {
+                        console.log('Error in download type change handler:', error);
+                    }
+                });
+            });
+        } catch (error) {
+            console.error('Error setting up download type radios:', error);
+        }
+        
+        // Convert and download button
+        convertButton.addEventListener('click', function() {
+            const url = videoUrlInput.value.trim();
+            
+            // Validate based on download type
+            if (currentDownloadType === 'audio_only') {
+                if (!selectedAudioFormat) {
+                    alert('Please select an audio format');
+                    return;
+                }
+            } else if (currentDownloadType === 'video_only') {
+                if (!selectedVideoFormat) {
+                    alert('Please select a video format');
+                    return;
+                }
+            } else { // combined
+                if (!selectedVideoFormat || !selectedAudioFormat) {
+                    alert('Please select both video and audio formats');
+                    return;
+                }
+            }
+            
+            // Hide video info and show loading
+            videoInfoContainer.classList.add('d-none');
+            loadingContainer.classList.remove('d-none');
+            
+            // Update loading title based on download type
+            const loadingTitle = document.getElementById('loading-title');
+            if (currentDownloadType === 'audio_only') {
+                loadingTitle.textContent = 'Processing Your Audio';
+            } else if (currentDownloadType === 'video_only') {
+                loadingTitle.textContent = 'Processing Your Video Only';
+            } else {
+                loadingTitle.textContent = 'Processing Your Video';
+            }
+            
+            // Reset progress
+            downloadProgressBar.style.width = '0%';
+            downloadProgressBar.textContent = '0%';
+            downloadStatus.textContent = 'Starting download...';
+            
+            // Reset transcript container
+            document.getElementById('transcript-container').classList.add('d-none');
+            document.getElementById('transcript-text').textContent = '';
+            
+            // Make API request
+            const formData = new FormData();
+            formData.append('url', url);
+            formData.append('video_format', selectedVideoFormat);
+            formData.append('audio_format', selectedAudioFormat);
+            formData.append('output_ext', 'mp4');
+            formData.append('download_type', currentDownloadType);
+            
+            fetch('/download', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    loadingContainer.classList.add('d-none');
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                // Start checking progress
+                const progressInterval = setInterval(function() {
+                    fetch('/download_progress')
+                        .then(response => response.json())
+                        .then(progressData => {
+                            if (progressData.status === 'error') {
+                                clearInterval(progressInterval);
+                                loadingContainer.classList.add('d-none');
+                                alert('Error: ' + progressData.message);
+                                return;
+                            }
+                            
+                            const progress = progressData.progress || 0;
+                            downloadProgressBar.style.width = `${progress}%`;
+                            downloadProgressBar.textContent = `${Math.round(progress)}%`;
+                            downloadStatus.textContent = progressData.message || 'Processing...';
+                            
+                            if (progressData.status === 'complete') {
+                                clearInterval(progressInterval);
+                                
+                                // Set download link and update button text based on download type
+                                downloadLink.href = `/download_file/${progressData.filename}`;
+                                
+                                // Update download button text based on download type
+                                const downloadType = progressData.download_type || 'combined';
+                                if (downloadType === 'audio_only') {
+                                    downloadLink.innerHTML = '<i class="fas fa-download me-2"></i>Download Audio';
+                                    document.querySelector('.card-header.bg-success h3').textContent = 'Your Audio is Ready!';
+                                } else if (downloadType === 'video_only') {
+                                    downloadLink.innerHTML = '<i class="fas fa-download me-2"></i>Download Video Only';
+                                    document.querySelector('.card-header.bg-success h3').textContent = 'Your Video is Ready!';
+                                } else {
+                                    downloadLink.innerHTML = '<i class="fas fa-download me-2"></i>Download Video';
+                                    document.querySelector('.card-header.bg-success h3').textContent = 'Your Video is Ready!';
+                                }
+                                
+                                // Hide transcript container for audio-only downloads
+                                if (downloadType === 'audio_only') {
+                                    document.getElementById('transcript-container').classList.add('d-none');
+                                // Show transcript if available and not audio-only
+                                } else if (progressData.transcript) {
+                                    const transcriptText = document.getElementById('transcript-text');
+                                    
+                                    // Format the transcript for better readability
+                                    let formattedTranscript = progressData.transcript
+                                        // Clean the transcript text
+                                        .replace(/\n\n/g, '\n') // Remove double line breaks
+                                        .replace(/align:start position:\d+%/g, '') // Remove alignment markers
+                                        .replace(/position:\d+%/g, '') // Remove position markers
+                                        .replace(/([.!?])\s+/g, '$1\n\n') // Add line breaks after sentences
+                                        .trim();
+                                    
+                                    // If transcript is still malformatted, try a more aggressive approach
+                                    if (formattedTranscript.includes('WEBVTT') || formattedTranscript.includes('-->')) {
+                                        // More aggressive cleaning for heavily formatted transcripts
+                                        const lines = formattedTranscript.split('\n');
+                                        const cleanedLines = lines.filter(line => {
+                                            // Filter out timestamp lines and metadata
+                                            return !line.includes('-->') && 
+                                                  !line.includes('WEBVTT') && 
+                                                  !/^\d+$/.test(line) &&
+                                                  !line.includes('align:') &&
+                                                  !line.includes('position:');
+                                        });
+                                        
+                                        formattedTranscript = cleanedLines.join('\n');
+                                        
+                                        // Add paragraph breaks for readability
+                                        formattedTranscript = formattedTranscript
+                                            .replace(/([.!?])\s+/g, '$1\n\n')
+                                            .trim();
+                                    }
+                                    
+                                    // Display the cleaned transcript
+                                    transcriptText.textContent = formattedTranscript;
+                                    document.getElementById('transcript-container').classList.remove('d-none');
+                                }
+                                
+                                // Hide loading and show result
+                                loadingContainer.classList.add('d-none');
+                                resultContainer.classList.remove('d-none');
+                                
+                                // Scroll to result
+                                resultContainer.scrollIntoView({ behavior: 'smooth' });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error checking progress:', error);
+                        });
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loadingContainer.classList.add('d-none');
+                alert('An error occurred. Please try again.');
+            });
+        });
+        
+        // Copy transcript button
+        document.getElementById('copy-transcript-btn').addEventListener('click', function() {
+            const transcriptText = document.getElementById('transcript-text').textContent;
+            copyToClipboard(transcriptText, 'Transcript copied to clipboard!');
+        });
+        
+        // Helper function for copying to clipboard
+        function copyToClipboard(text, successMessage) {
+            navigator.clipboard.writeText(text).then(
+                function() {
+                    // Create toast notification
+                    const toast = document.createElement('div');
+                    toast.className = 'position-fixed bottom-0 end-0 p-3';
+                    toast.style.zIndex = '1050';
+                    toast.innerHTML = `
+                        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header">
+                                <strong class="me-auto">Notification</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                            <div class="toast-body">
+                                ${successMessage}
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(toast);
+                    
+                    // Remove toast after 3 seconds
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 3000);
+                },
+                function(err) {
+                    console.error('Could not copy text: ', err);
+                    alert('Failed to copy to clipboard');
+                }
+            );
+        }
+    });
+</script>
+{% endblock %}

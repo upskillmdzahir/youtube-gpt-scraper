@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>
+                <i class="fas fa-search me-2 text-primary"></i>
+                Search Results
+            </h1>
+            <div>
+                <a href="{{ url_for('dev_result', analysis_id=analysis.id) }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Analysis
+                </a>
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <form action="{{ url_for('search_transcript', analysis_id=analysis.id) }}" method="get" class="d-flex">
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" name="q" class="form-control" placeholder="Search transcript..." value="{{ query }}" required>
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+    </div>
+    <div class="col-md-4 text-end">
+        <span class="text-muted">
+            {{ result_count }} result{% if result_count != 1 %}s{% endif %} found
+        </span>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-film me-2"></i>
+                    {{ analysis.title }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if result_count > 0 %}
+                    <div class="list-group">
+                        {% for result in results %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <a href="https://www.youtube.com/watch?v={{ analysis.video_id }}&t={{ result.timestamp }}" 
+                                       class="text-primary fw-bold text-decoration-none" target="_blank">
+                                        <i class="fas fa-play-circle me-1"></i>
+                                        {{ result.timestamp|format_timestamp }}
+                                    </a>
+                                    <span class="badge bg-primary rounded-pill">Match #{{ loop.index }}</span>
+                                </div>
+                                <div class="transcript-excerpt">
+                                    ... {{ result.snippet|safe }} ...
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No matches found for "<strong>{{ query }}</strong>" in this transcript.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .transcript-excerpt mark {
+        background-color: rgba(var(--bs-warning-rgb), 0.3);
+        color: inherit;
+        padding: 0.1em 0;
+    }
+    [data-bs-theme="dark"] .transcript-excerpt mark {
+        background-color: rgba(var(--bs-warning-rgb), 0.4);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,623 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>
+                <i class="fas fa-code me-2 text-primary"></i>
+                Developer Video Analysis
+            </h1>
+            <div>
+                <div class="btn-group me-2" role="group">
+                    <a href="{{ url_for('result', analysis_id=analysis.id) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-tv me-2"></i>Standard View
+                    </a>
+                    <a href="{{ url_for('dev_result', analysis_id=analysis.id) }}" class="btn btn-primary">
+                        <i class="fas fa-code me-2"></i>Developer View
+                    </a>
+                </div>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-search me-2"></i>Analyze Another Video
+                </a>
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<!-- Theme selector and export options -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <form action="{{ url_for('search_transcript', analysis_id=analysis.id) }}" method="get" class="d-flex">
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" name="q" class="form-control" placeholder="Search transcript..." required>
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+    </div>
+    <div class="col-md-4">
+        <div class="d-flex justify-content-end">
+            <div class="btn-group me-2">
+                <button class="btn btn-outline-secondary" id="theme-toggle" data-bs-toggle="tooltip" title="Toggle Dark/Light Mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+            <div class="me-2">
+                <!-- Format Selection Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="formatDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-video me-2"></i> Select Format
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="formatDropdown">
+                        <li><h6 class="dropdown-header">Video Formats</h6></li>
+                        <li><button class="dropdown-item format-option" data-format="mp4" data-resolution="1080p">MP4 (1080p)</button></li>
+                        <li><button class="dropdown-item format-option" data-format="mp4" data-resolution="720p">MP4 (720p)</button></li>
+                        <li><button class="dropdown-item format-option" data-format="mp4" data-resolution="480p">MP4 (480p)</button></li>
+                        <li><button class="dropdown-item format-option" data-format="webm" data-resolution="best">WebM (Best Quality)</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Audio Formats</h6></li>
+                        <li><button class="dropdown-item format-option" data-format="mp3">MP3 Audio</button></li>
+                        <li><button class="dropdown-item format-option" data-format="m4a">M4A Audio</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-primary" href="{{ url_for('download_video_page', video_id=analysis.video_id) }}">
+                                <i class="fas fa-cog me-1"></i> Advanced Options
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Selected Format (initially hidden) -->
+                <div id="selectedFormat" class="alert alert-info d-none mt-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-check-circle me-1"></i> 
+                            Selected: <span id="formatName">Not selected</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" id="changeFormat">
+                            <i class="fas fa-exchange-alt"></i> Change
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Convert Button (initially disabled) -->
+                <button id="convertBtn" class="btn btn-primary d-none mt-2">
+                    <i class="fas fa-sync-alt me-2"></i> Convert Video
+                </button>
+
+                <!-- Conversion Progress (initially hidden) -->
+                <div id="conversionProgress" class="d-none mt-2">
+                    <div class="card">
+                        <div class="card-body p-3">
+                            <h6 class="mb-2">Converting Video...</h6>
+                            <div class="progress mb-2">
+                                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div class="small text-muted text-center" id="progressText">Initializing...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Button (initially hidden) -->
+                <div id="downloadReady" class="d-none mt-2">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <i class="fas fa-check-circle me-1"></i> Conversion Complete
+                        </div>
+                        <div class="card-body p-3">
+                            <p class="card-text">Your video has been successfully converted and is ready to download.</p>
+                            <a id="downloadBtn" href="#" class="btn btn-primary w-100">
+                                <i class="fas fa-download me-1"></i> Download Now
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-file-export me-2"></i>Export
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">
+                    <li><a class="dropdown-item" href="{{ url_for('export_analysis', analysis_id=analysis.id, format='markdown') }}">
+                        <i class="fab fa-markdown me-2"></i>Markdown
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('export_analysis', analysis_id=analysis.id, format='pdf') }}">
+                        <i class="far fa-file-pdf me-2"></i>PDF
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#embedModal">
+                        <i class="fas fa-code me-2"></i>Embed Code
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Video Info Column -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="ratio ratio-16x9">
+                <iframe 
+                    src="https://www.youtube.com/embed/{{ analysis.video_id }}" 
+                    title="YouTube video player" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen
+                ></iframe>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ analysis.title }}</h5>
+                <div class="d-flex justify-content-between text-muted small">
+                    <span>
+                        <i class="fas fa-clock me-1"></i>
+                        {% if analysis.duration_seconds %}
+                            {{ analysis.duration_seconds|format_duration }}
+                        {% else %}
+                            Unknown duration
+                        {% endif %}
+                    </span>
+                    <span>
+                        <i class="fas fa-calendar me-1"></i>
+                        {{ analysis.created_at.strftime('%Y-%m-%d') }}
+                    </span>
+                </div>
+                
+                <div class="mt-3">
+                    <a href="{{ analysis.url }}" class="btn btn-outline-danger w-100" target="_blank">
+                        <i class="fab fa-youtube me-2"></i>Watch on YouTube
+                    </a>
+                </div>
+                
+                <!-- Developer content score -->
+                <div class="mt-3">
+                    <h6 class="text-muted">Developer Content Score</h6>
+                    <div class="progress" style="height: 20px;">
+                        {% if is_dev_content %}
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: 85%;" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100">
+                                85%
+                            </div>
+                        {% else %}
+                            <div class="progress-bar bg-warning" role="progressbar" 
+                                 style="width: 35%;" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100">
+                                35%
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="small text-muted mt-1 text-center">
+                        {% if is_dev_content %}
+                            This video contains developer-focused content.
+                        {% else %}
+                            This video appears to have limited developer content.
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Developer Tools & Technologies -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tools me-2"></i>
+                    Tools & Technologies
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if dev_tools %}
+                    <ul class="list-group list-group-flush">
+                        {% for tool in dev_tools %}
+                            <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center">
+                                {{ tool.tool }}
+                                <span class="badge bg-primary rounded-pill">{{ tool.mentions }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted mb-0">No specific developer tools detected.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Analysis & Code Column -->
+    <div class="col-md-8">
+        <!-- Summary Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-alt me-2"></i>
+                    Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ analysis.summary|safe }}</p>
+            </div>
+        </div>
+        
+        <!-- Code Snippets -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-code me-2"></i>
+                    Code Snippets
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if code_snippets %}
+                    <div class="accordion" id="codeSnippetsAccordion">
+                        {% for snippet in code_snippets %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                    <button class="accordion-button {{ 'collapsed' if loop.index > 1 }}" type="button" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#collapse{{ loop.index }}" 
+                                            aria-expanded="{{ 'true' if loop.index == 1 else 'false' }}" 
+                                            aria-controls="collapse{{ loop.index }}">
+                                        <i class="fas {{ 'fa-python' if snippet.language == 'python' else ('fa-js' if snippet.language == 'javascript' else 'fa-code') }} me-2"></i>
+                                        <strong>{{ snippet.language|capitalize }}</strong> - 
+                                        <a href="https://www.youtube.com/watch?v={{ analysis.video_id }}&t={{ snippet.timestamp }}" 
+                                           target="_blank" class="ms-2 text-muted timestamp-link">
+                                           {{ snippet.timestamp|format_timestamp }}
+                                        </a>
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ loop.index }}" 
+                                     class="accordion-collapse collapse {{ 'show' if loop.index == 1 }}" 
+                                     aria-labelledby="heading{{ loop.index }}" 
+                                     data-bs-parent="#codeSnippetsAccordion">
+                                    <div class="accordion-body p-0">
+                                        <pre class="m-0 p-3 language-{{ snippet.language }}"><code>{{ snippet.code }}</code></pre>
+                                        <div class="text-end p-2">
+                                            <button class="btn btn-sm btn-outline-secondary copy-btn" 
+                                                    data-code-index="{{ loop.index }}">
+                                                <i class="far fa-clipboard me-1"></i>Copy
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No code snippets detected in this video.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Key Timestamps -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    Key Moments
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if key_timestamps %}
+                    <div class="timeline">
+                        {% for timestamp in key_timestamps %}
+                            <div class="timeline-item">
+                                <div class="timeline-marker"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-1">
+                                        <a href="https://www.youtube.com/watch?v={{ analysis.video_id }}&t={{ timestamp.timestamp }}" 
+                                           target="_blank" class="timestamp-link">
+                                           <i class="fas fa-play-circle me-1"></i>
+                                           {{ timestamp.timestamp|format_timestamp }}
+                                        </a>
+                                        <span class="badge 
+                                            {% if 'Coding' in timestamp.action %}bg-primary
+                                            {% elif 'Run' in timestamp.action %}bg-success
+                                            {% elif 'Error' in timestamp.action %}bg-danger
+                                            {% elif 'API' in timestamp.action %}bg-info
+                                            {% else %}bg-secondary
+                                            {% endif %} ms-2">
+                                            {{ timestamp.action }}
+                                        </span>
+                                    </h6>
+                                    <p class="text-muted small mb-0">{{ timestamp.description }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No key moments detected in this video.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Transcript Search -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-alt me-2"></i>
+                    Transcript 
+                </h5>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTranscript">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div id="collapseTranscript" class="collapse">
+                <div class="card-body">
+                    <div class="transcript-container" style="max-height: 300px; overflow-y: auto;">
+                        <pre class="text-wrap bg-transparent border-0 p-0">{{ analysis.transcript|default('No transcript available.') }}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Embed Code Modal -->
+<div class="modal fade" id="embedModal" tabindex="-1" aria-labelledby="embedModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="embedModalLabel">Embed Analysis</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Copy and paste this code to embed this analysis on your website or blog:</p>
+        <div class="bg-light p-3 rounded mb-3">
+          <pre class="mb-0"><code id="embedCode">{{ analysis|generate_embed_code|replace('YOUR_DOMAIN', request.host) }}</code></pre>
+        </div>
+        <p class="text-muted small">Preview:</p>
+        <div id="embedPreview">
+          {{ analysis|generate_embed_code|replace('YOUR_DOMAIN', request.host)|safe }}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="copyEmbedCode">
+          <i class="far fa-clipboard me-2"></i>Copy Code
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+/* Timeline styling */
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+.timeline-marker {
+    position: absolute;
+    top: 5px;
+    left: -30px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background-color: var(--bs-primary);
+    border: 2px solid var(--bs-body-bg);
+}
+.timeline-item:not(:last-child):after {
+    content: '';
+    position: absolute;
+    left: -23px;
+    top: 20px;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--bs-gray-400);
+}
+.timestamp-link {
+    text-decoration: none;
+}
+.timestamp-link:hover {
+    text-decoration: underline;
+}
+
+/* Dark mode styles will be toggled via JavaScript */
+[data-bs-theme="dark"] .timeline-marker {
+    border-color: var(--bs-dark);
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Video conversion workflow
+        const formatOptions = document.querySelectorAll('.format-option');
+        const formatDropdown = document.getElementById('formatDropdown');
+        const selectedFormat = document.getElementById('selectedFormat');
+        const formatName = document.getElementById('formatName');
+        const changeFormat = document.getElementById('changeFormat');
+        const convertBtn = document.getElementById('convertBtn');
+        const conversionProgress = document.getElementById('conversionProgress');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const downloadReady = document.getElementById('downloadReady');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        // Selected format data
+        let currentFormat = {
+            format: '',
+            resolution: '',
+            displayName: ''
+        };
+        
+        // Handle format selection
+        formatOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                const format = this.dataset.format;
+                const resolution = this.dataset.resolution;
+                const displayName = this.textContent.trim();
+                
+                // Store selected format
+                currentFormat = {
+                    format: format,
+                    resolution: resolution,
+                    displayName: displayName
+                };
+                
+                // Update UI
+                formatName.textContent = displayName;
+                selectedFormat.classList.remove('d-none');
+                convertBtn.classList.remove('d-none');
+                
+                // Build download URL
+                let downloadUrl = `{{ url_for('export_analysis', analysis_id=analysis.id, format='') }}${format}`;
+                if (resolution) {
+                    downloadUrl += `&resolution=${resolution}`;
+                }
+                downloadBtn.href = downloadUrl;
+            });
+        });
+        
+        // Handle change format button
+        if (changeFormat) {
+            changeFormat.addEventListener('click', function() {
+                selectedFormat.classList.add('d-none');
+                convertBtn.classList.add('d-none');
+            });
+        }
+        
+        // Handle convert button
+        if (convertBtn) {
+            convertBtn.addEventListener('click', function() {
+                // Hide format selection and convert button
+                selectedFormat.classList.add('d-none');
+                convertBtn.classList.add('d-none');
+                
+                // Show conversion progress
+                conversionProgress.classList.remove('d-none');
+                
+                // Simulate conversion progress
+                let progress = 0;
+                const interval = setInterval(function() {
+                    progress += 5;
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.setAttribute('aria-valuenow', progress);
+                    
+                    // Update progress text based on stage
+                    if (progress < 20) {
+                        progressText.textContent = 'Retrieving video information...';
+                    } else if (progress < 40) {
+                        progressText.textContent = 'Downloading video streams...';
+                    } else if (progress < 60) {
+                        progressText.textContent = 'Processing video...';
+                    } else if (progress < 80) {
+                        progressText.textContent = 'Converting format...';
+                    } else {
+                        progressText.textContent = 'Finalizing...';
+                    }
+                    
+                    // Conversion complete
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        
+                        // Hide progress and show download button
+                        setTimeout(function() {
+                            conversionProgress.classList.add('d-none');
+                            downloadReady.classList.remove('d-none');
+                        }, 500);
+                    }
+                }, 200);
+            });
+        }
+        
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Code highlighting with highlight.js 
+        if (typeof hljs !== 'undefined') {
+            document.querySelectorAll('pre code').forEach((el) => {
+                hljs.highlightElement(el);
+            });
+        }
+        
+        // Copy button for code snippets
+        document.querySelectorAll('.copy-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = this.getAttribute('data-code-index');
+                const codeElement = document.querySelector(`#collapse${index} pre code`);
+                const text = codeElement.textContent;
+                
+                navigator.clipboard.writeText(text).then(() => {
+                    // Change button text temporarily
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+                    setTimeout(() => {
+                        this.innerHTML = originalText;
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+            });
+        });
+        
+        // Copy embed code button
+        document.getElementById('copyEmbedCode').addEventListener('click', function() {
+            const embedCode = document.getElementById('embedCode').textContent;
+            
+            navigator.clipboard.writeText(embedCode).then(() => {
+                // Change button text temporarily
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        });
+        
+        // Theme toggle
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        themeToggleBtn.addEventListener('click', function() {
+            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Update icon
+            const icon = this.querySelector('i');
+            if (newTheme === 'dark') {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        });
+        
+        // Set initial theme based on localStorage or system preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            
+            // Update icon
+            const icon = themeToggleBtn.querySelector('i');
+            if (savedTheme === 'dark') {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            }
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+            
+            // Update icon
+            const icon = themeToggleBtn.querySelector('i');
+            icon.classList.remove('fa-moon');
+            icon.classList.add('fa-sun');
+        }
+    });
+</script>
+{% endblock %}

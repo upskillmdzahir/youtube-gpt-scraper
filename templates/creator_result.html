@@ -1,0 +1,1001 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="mb-2">
+                    <i class="fab fa-youtube text-danger me-2"></i>
+                    {{ analysis.title }}
+                </h1>
+                <p class="text-muted">
+                    <i class="fas fa-clock me-1"></i> {% if analysis.duration_seconds %}{{ analysis.duration_seconds|format_duration }}{% else %}00:00{% endif %}
+                    • Analyzed on {{ analysis.created_at.strftime('%Y-%m-%d') }}
+                </p>
+            </div>
+            <div>
+                <a href="{{ analysis.url }}" class="btn btn-outline-danger mb-2" target="_blank">
+                    <i class="fab fa-youtube me-1"></i> Watch on YouTube
+                </a>
+                
+                <!-- Format Selection Dropdown -->
+                <div class="dropdown mb-2">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="formatDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-video me-1"></i> Select Format
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="formatDropdown">
+                        <li><h6 class="dropdown-header">Video Formats</h6></li>
+                        <li><button class="dropdown-item format-option" data-format="mp4" data-resolution="1080p">MP4 (1080p)</button></li>
+                        <li><button class="dropdown-item format-option" data-format="mp4" data-resolution="720p">MP4 (720p)</button></li>
+                        <li><button class="dropdown-item format-option" data-format="mp4" data-resolution="480p">MP4 (480p)</button></li>
+                        <li><button class="dropdown-item format-option" data-format="webm" data-resolution="best">WebM (Best Quality)</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Audio Formats</h6></li>
+                        <li><button class="dropdown-item format-option" data-format="mp3">MP3 Audio</button></li>
+                        <li><button class="dropdown-item format-option" data-format="m4a">M4A Audio</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-primary" href="{{ url_for('download_video_page', video_id=analysis.video_id) }}">
+                                <i class="fas fa-cog me-1"></i> Advanced Options
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Selected Format (initially hidden) -->
+                <div id="selectedFormat" class="alert alert-info d-none mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-check-circle me-1"></i> 
+                            Selected: <span id="formatName">Not selected</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" id="changeFormat">
+                            <i class="fas fa-exchange-alt"></i> Change
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Convert Button (initially disabled) -->
+                <button id="convertBtn" class="btn btn-primary mb-2 d-none">
+                    <i class="fas fa-sync-alt me-1"></i> Convert Video
+                </button>
+
+                <!-- Conversion Progress (initially hidden) -->
+                <div id="conversionProgress" class="d-none mb-2">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="mb-2">Converting Video...</h6>
+                            <div class="progress mb-2">
+                                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div class="small text-muted text-center" id="progressText">Initializing...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Button (initially hidden) -->
+                <div id="downloadReady" class="d-none mb-2">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <i class="fas fa-check-circle me-1"></i> Conversion Complete
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Your video has been successfully converted and is ready to download.</p>
+                            <a id="downloadBtn" href="#" class="btn btn-primary w-100">
+                                <i class="fas fa-download me-1"></i> Download Now
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left column (tabs) -->
+    <div class="col-md-4 mb-4">
+        <div class="list-group mb-4" id="creator-tools-tabs" role="tablist">
+            <a class="list-group-item list-group-item-action active" id="summary-tab" data-bs-toggle="list" href="#summary" role="tab">
+                <i class="fas fa-file-alt me-2"></i> Summary & Analysis
+            </a>
+            <a class="list-group-item list-group-item-action" id="chapters-tab" data-bs-toggle="list" href="#chapters" role="tab">
+                <i class="fas fa-list-ol me-2"></i> Auto Chapters
+            </a>
+            <a class="list-group-item list-group-item-action" id="quotes-tab" data-bs-toggle="list" href="#quotes" role="tab">
+                <i class="fas fa-quote-right me-2"></i> Quotable Moments
+            </a>
+            <a class="list-group-item list-group-item-action" id="shorts-tab" data-bs-toggle="list" href="#shorts" role="tab">
+                <i class="fas fa-video me-2"></i> Short-Form Ideas
+            </a>
+            <a class="list-group-item list-group-item-action" id="captions-tab" data-bs-toggle="list" href="#captions" role="tab">
+                <i class="fas fa-comment me-2"></i> Social Captions
+            </a>
+            <a class="list-group-item list-group-item-action" id="hashtags-tab" data-bs-toggle="list" href="#hashtags" role="tab">
+                <i class="fas fa-hashtag me-2"></i> Hashtag Suggestions
+            </a>
+            <a class="list-group-item list-group-item-action" id="voiceover-tab" data-bs-toggle="list" href="#voiceover" role="tab">
+                <i class="fas fa-microphone me-2"></i> Voiceover Script
+            </a>
+            <a class="list-group-item list-group-item-action" id="export-tab" data-bs-toggle="list" href="#export" role="tab">
+                <i class="fas fa-file-export me-2"></i> Export Options
+            </a>
+            <a class="list-group-item list-group-item-action" id="translate-tab" data-bs-toggle="list" href="#translate" role="tab">
+                <i class="fas fa-language me-2"></i> Translate Summary
+            </a>
+        </div>
+        
+        <!-- Export Options -->
+        <div class="card mb-4 bg-light">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-download me-2"></i> Export This Analysis
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('export_analysis', analysis_id=analysis.id, format='markdown') }}" class="btn btn-outline-primary">
+                        <i class="fab fa-markdown me-1"></i> Markdown (.md)
+                    </a>
+                    <a href="{{ url_for('export_analysis', analysis_id=analysis.id, format='txt') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-file-alt me-1"></i> Text (.txt)
+                    </a>
+                    <a href="{{ url_for('export_analysis', analysis_id=analysis.id, format='docx') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-file-word me-1"></i> Word (.docx)
+                    </a>
+                    <button class="btn btn-outline-primary" id="copy-to-clipboard">
+                        <i class="fas fa-clipboard me-1"></i> Copy to Clipboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right column (content) -->
+    <div class="col-md-8">
+        <div class="tab-content">
+            <!-- Summary & Analysis -->
+            <div class="tab-pane fade show active" id="summary" role="tabpanel">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-alt me-2"></i> Video Summary
+                        </h5>
+                        <div id="theme-toggle-container">
+                            <button class="btn btn-sm btn-outline-secondary" id="toggle-theme">
+                                <i class="fas fa-moon"></i> Dark/Light
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3 summary-container">
+                            <p class="lead summary-preview">{{ analysis.summary|safe|truncate(150, true) }} <a href="#" class="btn btn-sm btn-link summary-toggle" data-action="expand">Show more</a></p>
+                            <div class="full-summary d-none">
+                                <p class="lead">{{ analysis.summary|safe }}</p>
+                                <a href="#" class="btn btn-sm btn-link summary-toggle" data-action="collapse">Show less</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Auto Chapters -->
+            <div class="tab-pane fade" id="chapters" role="tabpanel">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list-ol me-2"></i> Auto-Generated Chapters
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if chapters %}
+                            <div class="list-group">
+                                {% for chapter in chapters %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex w-100 justify-content-between align-items-center mb-2">
+                                            <h5 class="mb-1">{{ chapter.title }}</h5>
+                                            <a href="{{ analysis.url }}&t={{ chapter.timestamp }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-play me-1"></i>
+                                                {% if chapter.timestamp %}{{ chapter.timestamp|format_timestamp }}{% else %}00:00{% endif %}
+                                            </a>
+                                        </div>
+                                        <p class="mb-1 chapter-content">{{ chapter.content|truncate(150) }}</p>
+                                        <button class="btn btn-sm btn-link toggle-content">Show more</button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="mt-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Chapter Markers for YouTube Description</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <button class="btn btn-sm btn-outline-primary copy-chapters">
+                                                <i class="fas fa-copy me-1"></i> Copy to clipboard
+                                            </button>
+                                        </div>
+                                        <pre class="bg-light p-3 rounded chapter-format">{% for chapter in chapters %}{% if chapter.timestamp %}{{ chapter.timestamp|format_timestamp }}{% else %}00:00{% endif %} {{ chapter.title }}
+{% endfor %}</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> No chapter information available for this video.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quotable Moments -->
+            <div class="tab-pane fade" id="quotes" role="tabpanel">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-quote-right me-2"></i> Quotable Moments
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if quotable_moments %}
+                            {% for quote in quotable_moments %}
+                                <div class="card mb-3 quote-card {{ quote.emotion }}">
+                                    <div class="card-body">
+                                        <blockquote class="blockquote mb-0">
+                                            <p>{{ quote.quote }}</p>
+                                            <footer class="blockquote-footer text-end">
+                                                <a href="{{ analysis.url }}&t={{ quote.timestamp }}" target="_blank" class="btn btn-sm btn-light">
+                                                    <i class="fas fa-play me-1"></i>
+                                                    {% if quote.timestamp %}{{ quote.timestamp|format_timestamp }}{% else %}00:00{% endif %}
+                                                </a>
+                                                <span class="badge {% if quote.emotion == 'positive' %}bg-success{% elif quote.emotion == 'warning' %}bg-warning text-dark{% elif quote.emotion == 'tip' %}bg-info text-dark{% elif quote.emotion == 'excited' %}bg-danger{% else %}bg-secondary{% endif %} ms-2">
+                                                    {{ quote.emotion|capitalize }}
+                                                </span>
+                                            </footer>
+                                        </blockquote>
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-outline-secondary copy-quote" data-quote="{{ quote.quote }}">
+                                                <i class="fas fa-copy me-1"></i> Copy quote
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> No quotable moments were detected in this video.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Short-Form Ideas -->
+            <div class="tab-pane fade" id="shorts" role="tabpanel">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-video me-2"></i> Short-Form Content Ideas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if short_form_ideas %}
+                            <div class="row">
+                                {% for idea in short_form_ideas %}
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card h-100 short-form-card">
+                                            <div class="card-header">
+                                                <h5 class="mb-0">{{ idea.title }}</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <h6 class="card-subtitle mb-2 text-muted">Hook:</h6>
+                                                <p class="card-text">{{ idea.hook }}</p>
+                                                <h6 class="card-subtitle mb-2 text-muted">Description:</h6>
+                                                <p class="card-text">{{ idea.description }}</p>
+                                                <div class="text-end">
+                                                    <a href="{{ analysis.url }}&t={{ idea.timestamp }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-play me-1"></i>
+                                                        {% if idea.timestamp %}{{ idea.timestamp|format_timestamp }}{% else %}00:00{% endif %}
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> No short-form content ideas were generated for this video.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Social Media Captions -->
+            <div class="tab-pane fade" id="captions" role="tabpanel">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-comment me-2"></i> Social Media Captions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if social_media_captions %}
+                            <ul class="nav nav-tabs mb-3" role="tablist">
+                                {% if social_media_captions.youtube %}
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="youtube-caption-tab" data-bs-toggle="tab" data-bs-target="#youtube-caption" type="button" role="tab">
+                                            <i class="fab fa-youtube me-1"></i> YouTube
+                                        </button>
+                                    </li>
+                                {% endif %}
+                                
+                                {% if social_media_captions.instagram %}
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="instagram-caption-tab" data-bs-toggle="tab" data-bs-target="#instagram-caption" type="button" role="tab">
+                                            <i class="fab fa-instagram me-1"></i> Instagram
+                                        </button>
+                                    </li>
+                                {% endif %}
+                                
+                                {% if social_media_captions.twitter %}
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="twitter-caption-tab" data-bs-toggle="tab" data-bs-target="#twitter-caption" type="button" role="tab">
+                                            <i class="fab fa-twitter me-1"></i> Twitter
+                                        </button>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                            
+                            <div class="tab-content">
+                                {% if social_media_captions.youtube %}
+                                    <div class="tab-pane fade show active" id="youtube-caption" role="tabpanel">
+                                        <div class="card">
+                                            <div class="card-header d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0"><i class="fab fa-youtube me-1"></i> YouTube Description</h6>
+                                                <button class="btn btn-sm btn-outline-primary copy-caption" data-target="youtube">
+                                                    <i class="fas fa-copy me-1"></i> Copy
+                                                </button>
+                                            </div>
+                                            <div class="card-body">
+                                                <h6 class="mb-2">Title: {{ social_media_captions.youtube.title }}</h6>
+                                                <div class="border p-3 rounded bg-light caption-text" id="youtube-caption-text">
+                                                    {{ social_media_captions.youtube.description|safe|replace('\n', '<br>') }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if social_media_captions.instagram %}
+                                    <div class="tab-pane fade" id="instagram-caption" role="tabpanel">
+                                        <div class="card">
+                                            <div class="card-header d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0"><i class="fab fa-instagram me-1"></i> Instagram Caption</h6>
+                                                <button class="btn btn-sm btn-outline-primary copy-caption" data-target="instagram">
+                                                    <i class="fas fa-copy me-1"></i> Copy
+                                                </button>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="border p-3 rounded bg-light caption-text" id="instagram-caption-text">
+                                                    {{ social_media_captions.instagram.caption|safe|replace('\n', '<br>') }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if social_media_captions.twitter %}
+                                    <div class="tab-pane fade" id="twitter-caption" role="tabpanel">
+                                        <div class="card">
+                                            <div class="card-header d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0"><i class="fab fa-twitter me-1"></i> Twitter/X Post</h6>
+                                                <button class="btn btn-sm btn-outline-primary copy-caption" data-target="twitter">
+                                                    <i class="fas fa-copy me-1"></i> Copy
+                                                </button>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="border p-3 rounded bg-light caption-text" id="twitter-caption-text">
+                                                    {{ social_media_captions.twitter.text|safe|replace('\n', '<br>') }}
+                                                </div>
+                                                <div class="text-muted text-end mt-2">
+                                                    <small>{{ social_media_captions.twitter.text|length }} / 280 characters</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> No social media captions were generated for this video.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Hashtag Suggestions -->
+            <div class="tab-pane fade" id="hashtags" role="tabpanel">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-hashtag me-2"></i> Hashtag Suggestions
+                        </h5>
+                        <button class="btn btn-sm btn-outline-primary" id="copy-hashtags">
+                            <i class="fas fa-copy me-1"></i> Copy All
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        {% if hashtags %}
+                            <div class="hashtag-container">
+                                {% for tag in hashtags %}
+                                    <span class="badge bg-secondary me-2 mb-2 p-2 hashtag">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            <div class="mt-3">
+                                <div class="form-control bg-light" id="hashtags-text">{{ hashtags|join(' ') }}</div>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> No hashtag suggestions were generated for this video.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Voiceover Script -->
+            <div class="tab-pane fade" id="voiceover" role="tabpanel">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-microphone me-2"></i> Voiceover Script
+                        </h5>
+                        <button class="btn btn-sm btn-outline-primary" id="copy-voiceover">
+                            <i class="fas fa-copy me-1"></i> Copy Script
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        {% if analysis.voiceover_script %}
+                            <div class="script-container p-3 bg-light rounded">
+                                {{ analysis.voiceover_script|safe|replace('\n\n', '</p><p>')|replace('\n', '<br>')|safe }}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> No voiceover script was generated for this video.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Export Options -->
+            <div class="tab-pane fade" id="export" role="tabpanel">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-export me-2"></i> Export Analysis
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-header">Document Formats</div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <a href="{{ url_for('export_analysis', analysis_id=analysis.id, format='markdown') }}" class="btn btn-outline-primary">
+                                                <i class="fab fa-markdown me-1"></i> Markdown (.md)
+                                            </a>
+                                            <a href="{{ url_for('export_analysis', analysis_id=analysis.id, format='txt') }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-file-alt me-1"></i> Text (.txt)
+                                            </a>
+                                            <a href="{{ url_for('export_analysis', analysis_id=analysis.id, format='docx') }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-file-word me-1"></i> Word (.docx)
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-header">Quick Copy</div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-outline-primary" id="copy-full-analysis">
+                                                <i class="fas fa-clipboard me-1"></i> All Analysis
+                                            </button>
+                                            <button class="btn btn-outline-primary" id="copy-summary-only">
+                                                <i class="fas fa-clipboard me-1"></i> Summary Only
+                                            </button>
+                                            <button class="btn btn-outline-primary" id="copy-chapters-only">
+                                                <i class="fas fa-clipboard me-1"></i> Chapters Only
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">Embed Code</div>
+                                    <div class="card-body">
+                                        <div class="form-floating mb-3">
+                                            <textarea class="form-control" id="embed-code" style="height: 150px">{{ generate_embed_code(analysis)|safe }}</textarea>
+                                            <label for="embed-code">HTML Embed Code</label>
+                                        </div>
+                                        <button class="btn btn-outline-primary" id="copy-embed-code">
+                                            <i class="fas fa-copy me-1"></i> Copy Embed Code
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Translate Summary -->
+            <div class="tab-pane fade" id="translate" role="tabpanel">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-language me-2"></i> Translate Summary
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="translate-form" class="mb-4">
+                            <div class="mb-3">
+                                <label for="language-select" class="form-label">Target Language</label>
+                                <select id="language-select" class="form-select">
+                                    <option value="">Select language</option>
+                                    <option value="bangla">Bangla</option>
+                                    <option value="spanish">Spanish</option>
+                                    <option value="hindi">Hindi</option>
+                                    <option value="french">French</option>
+                                    <option value="german">German</option>
+                                    <option value="chinese">Chinese</option>
+                                    <option value="japanese">Japanese</option>
+                                    <option value="korean">Korean</option>
+                                    <option value="arabic">Arabic</option>
+                                    <option value="russian">Russian</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="translate-button">
+                                <i class="fas fa-language me-1"></i> Translate
+                            </button>
+                        </form>
+                        
+                        <div id="translation-result" class="d-none">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0" id="translation-language">Translation</h6>
+                                    <button class="btn btn-sm btn-outline-primary" id="copy-translation">
+                                        <i class="fas fa-copy me-1"></i> Copy
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="translation-content"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="translation-loading" class="d-none text-center p-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Translating summary...</p>
+                        </div>
+                        
+                        <div id="translation-error" class="d-none">
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <span id="error-message">Failed to translate. Please try again.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Video conversion workflow
+    const formatOptions = document.querySelectorAll('.format-option');
+    const formatDropdown = document.getElementById('formatDropdown');
+    const selectedFormat = document.getElementById('selectedFormat');
+    const formatName = document.getElementById('formatName');
+    const changeFormat = document.getElementById('changeFormat');
+    const convertBtn = document.getElementById('convertBtn');
+    const conversionProgress = document.getElementById('conversionProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const downloadReady = document.getElementById('downloadReady');
+    const downloadBtn = document.getElementById('downloadBtn');
+    
+    // Selected format data
+    let currentFormat = {
+        format: '',
+        resolution: '',
+        displayName: ''
+    };
+    
+    // Handle format selection
+    formatOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const format = this.dataset.format;
+            const resolution = this.dataset.resolution;
+            const displayName = this.textContent.trim();
+            
+            // Store selected format
+            currentFormat = {
+                format: format,
+                resolution: resolution,
+                displayName: displayName
+            };
+            
+            // Update UI
+            formatName.textContent = displayName;
+            selectedFormat.classList.remove('d-none');
+            convertBtn.classList.remove('d-none');
+            
+            // Build download URL
+            let downloadUrl = `{{ url_for('export_analysis', analysis_id=analysis.id, format='') }}${format}`;
+            if (resolution) {
+                downloadUrl += `&resolution=${resolution}`;
+            }
+            downloadBtn.href = downloadUrl;
+        });
+    });
+    
+    // Handle change format button
+    if (changeFormat) {
+        changeFormat.addEventListener('click', function() {
+            selectedFormat.classList.add('d-none');
+            convertBtn.classList.add('d-none');
+        });
+    }
+    
+    // Handle convert button
+    if (convertBtn) {
+        convertBtn.addEventListener('click', function() {
+            // Hide format selection and convert button
+            selectedFormat.classList.add('d-none');
+            convertBtn.classList.add('d-none');
+            
+            // Show conversion progress
+            conversionProgress.classList.remove('d-none');
+            
+            // Simulate conversion progress
+            let progress = 0;
+            const interval = setInterval(function() {
+                progress += 5;
+                progressBar.style.width = `${progress}%`;
+                progressBar.setAttribute('aria-valuenow', progress);
+                
+                // Update progress text based on stage
+                if (progress < 20) {
+                    progressText.textContent = 'Retrieving video information...';
+                } else if (progress < 40) {
+                    progressText.textContent = 'Downloading video streams...';
+                } else if (progress < 60) {
+                    progressText.textContent = 'Processing video...';
+                } else if (progress < 80) {
+                    progressText.textContent = 'Converting format...';
+                } else {
+                    progressText.textContent = 'Finalizing...';
+                }
+                
+                // Conversion complete
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    
+                    // Hide progress and show download button
+                    setTimeout(function() {
+                        conversionProgress.classList.add('d-none');
+                        downloadReady.classList.remove('d-none');
+                    }, 500);
+                }
+            }, 200);
+        });
+    }
+    
+    // Theme toggle functionality
+    const toggleThemeBtn = document.getElementById('toggle-theme');
+    if (toggleThemeBtn) {
+        toggleThemeBtn.addEventListener('click', function() {
+            const html = document.documentElement;
+            if (html.getAttribute('data-bs-theme') === 'dark') {
+                html.setAttribute('data-bs-theme', 'light');
+                toggleThemeBtn.innerHTML = '<i class="fas fa-sun"></i> Dark/Light';
+            } else {
+                html.setAttribute('data-bs-theme', 'dark');
+                toggleThemeBtn.innerHTML = '<i class="fas fa-moon"></i> Dark/Light';
+            }
+        });
+    }
+    
+    // Toggle chapter content
+    const toggleButtons = document.querySelectorAll('.toggle-content');
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const content = this.previousElementSibling;
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+                content.style.whiteSpace = 'nowrap';
+                content.style.textOverflow = 'ellipsis';
+                content.style.overflow = 'hidden';
+                this.textContent = 'Show more';
+            } else {
+                content.style.maxHeight = '1000px';
+                content.style.whiteSpace = 'normal';
+                content.style.textOverflow = 'clip';
+                content.style.overflow = 'visible';
+                this.textContent = 'Show less';
+            }
+        });
+    });
+    
+    // Copy chapter markers
+    const copyChaptersBtn = document.querySelector('.copy-chapters');
+    if (copyChaptersBtn) {
+        copyChaptersBtn.addEventListener('click', function() {
+            const chaptersText = document.querySelector('.chapter-format').innerText;
+            navigator.clipboard.writeText(chaptersText)
+                .then(() => {
+                    this.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fas fa-copy me-1"></i> Copy to clipboard';
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+        });
+    }
+    
+    // Copy quotes
+    const copyQuoteButtons = document.querySelectorAll('.copy-quote');
+    copyQuoteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const quoteText = this.getAttribute('data-quote');
+            navigator.clipboard.writeText(quoteText)
+                .then(() => {
+                    this.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fas fa-copy me-1"></i> Copy quote';
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+        });
+    });
+    
+    // Copy captions
+    const copyCaptionButtons = document.querySelectorAll('.copy-caption');
+    copyCaptionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const platform = this.getAttribute('data-target');
+            const textElement = document.getElementById(`${platform}-caption-text`);
+            // Get text without HTML tags
+            const text = textElement.innerText;
+            
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    this.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fas fa-copy me-1"></i> Copy';
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+        });
+    });
+    
+    // Copy hashtags
+    const copyHashtagsBtn = document.getElementById('copy-hashtags');
+    if (copyHashtagsBtn) {
+        copyHashtagsBtn.addEventListener('click', function() {
+            const hashtagsText = document.getElementById('hashtags-text').innerText;
+            navigator.clipboard.writeText(hashtagsText)
+                .then(() => {
+                    this.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fas fa-copy me-1"></i> Copy All';
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+        });
+    }
+    
+    // Copy voiceover script
+    const copyVoiceoverBtn = document.getElementById('copy-voiceover');
+    if (copyVoiceoverBtn) {
+        copyVoiceoverBtn.addEventListener('click', function() {
+            const scriptContainer = document.querySelector('.script-container');
+            const scriptText = scriptContainer.innerText;
+            
+            navigator.clipboard.writeText(scriptText)
+                .then(() => {
+                    this.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fas fa-copy me-1"></i> Copy Script';
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+        });
+    }
+    
+    // Copy embed code
+    const copyEmbedBtn = document.getElementById('copy-embed-code');
+    if (copyEmbedBtn) {
+        copyEmbedBtn.addEventListener('click', function() {
+            const embedCode = document.getElementById('embed-code').value;
+            
+            navigator.clipboard.writeText(embedCode)
+                .then(() => {
+                    this.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fas fa-copy me-1"></i> Copy Embed Code';
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+        });
+    }
+    
+    // Translation form
+    const translateForm = document.getElementById('translate-form');
+    if (translateForm) {
+        translateForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const languageSelect = document.getElementById('language-select');
+            const language = languageSelect.value;
+            
+            if (!language) {
+                alert('Please select a language');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('translation-loading').classList.remove('d-none');
+            document.getElementById('translation-result').classList.add('d-none');
+            document.getElementById('translation-error').classList.add('d-none');
+            
+            // Simulate translation (in a real app, this would be an API call)
+            setTimeout(() => {
+                // For demo purposes - In a real app, replace with actual API call
+                const langLabel = languageSelect.options[languageSelect.selectedIndex].text;
+                document.getElementById('translation-language').textContent = `Translation (${langLabel})`;
+                
+                // Show translation result
+                document.getElementById('translation-loading').classList.add('d-none');
+                document.getElementById('translation-result').classList.remove('d-none');
+                
+                // Set translation content placeholder
+                document.querySelector('.translation-content').innerHTML = 
+                    `<div class="alert alert-info">This is a placeholder for the translated summary. In the actual application, this would be the real translation in ${langLabel}.</div>`;
+                
+            }, 1500);
+        });
+    }
+    
+    // Copy translation
+    const copyTranslationBtn = document.getElementById('copy-translation');
+    if (copyTranslationBtn) {
+        copyTranslationBtn.addEventListener('click', function() {
+            const translationText = document.querySelector('.translation-content').innerText;
+            
+            navigator.clipboard.writeText(translationText)
+                .then(() => {
+                    this.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fas fa-copy me-1"></i> Copy';
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+        });
+    }
+    
+    // Initialize highlight.js for code syntax highlighting
+    if (typeof hljs !== 'undefined') {
+        document.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightBlock(block);
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .quote-card {
+        border-left: 5px solid var(--bs-secondary);
+    }
+    
+    .quote-card.positive {
+        border-left-color: var(--bs-success);
+    }
+    
+    .quote-card.warning {
+        border-left-color: var(--bs-warning);
+    }
+    
+    .quote-card.tip {
+        border-left-color: var(--bs-info);
+    }
+    
+    .quote-card.excited {
+        border-left-color: var(--bs-danger);
+    }
+    
+    .chapter-content {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .short-form-card {
+        transition: transform 0.2s;
+    }
+    
+    .short-form-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .hashtag {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .hashtag:hover {
+        background-color: var(--bs-primary);
+    }
+    
+    .script-container {
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+    }
+    
+    .caption-text {
+        white-space: pre-wrap;
+    }
+    
+    [data-bs-theme="light"] .bg-light {
+        background-color: #f8f9fa !important;
+    }
+    
+    [data-bs-theme="dark"] .bg-light {
+        background-color: #343a40 !important;
+        color: #fff;
+    }
+    
+    [data-bs-theme="dark"] .form-control.bg-light {
+        background-color: #343a40 !important;
+        color: #fff;
+        border-color: #495057;
+    }
+</style>
+{% endblock %}

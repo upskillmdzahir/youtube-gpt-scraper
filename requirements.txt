@@ -1,0 +1,9 @@
+flask
+gunicorn
+yt-dlp
+ffmpeg-python
+pytube
+flask-sqlalchemy
+psycopg2-binary
+youtube-transcript-api
+trafilatura

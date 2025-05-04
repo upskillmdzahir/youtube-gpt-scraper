@@ -1,0 +1,50 @@
+/* Custom CSS for YouTube GPT Analyzer */
+
+/* Improve video card appearance */
+.card {
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Smooth transitions for hover effects */
+.btn {
+    transition: all 0.3s ease;
+}
+
+/* YouTube-style progress bar for loading states */
+.youtube-progress {
+    height: 3px;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1100;
+    background: linear-gradient(to right, #f00 0%, #f90 50%, #f00 100%);
+    background-size: 200% auto;
+    animation: progress-animation 1.5s linear infinite;
+}
+
+@keyframes progress-animation {
+    0% {
+        background-position: 0% center;
+    }
+    100% {
+        background-position: -200% center;
+    }
+}
+
+/* Custom Bootstrap theme adjustments */
+.bg-youtube {
+    background-color: #FF0000;
+}
+
+.text-youtube {
+    color: #FF0000;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+}

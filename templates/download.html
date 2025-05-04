@@ -1,0 +1,465 @@
+{% extends "layout.html" %}
+
+{% block title %}Download: {{ video_info.title }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card shadow mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-download me-2"></i> Download Video
+                    </h5>
+                    <a href="https://www.youtube.com/watch?v={{ video_id }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="fab fa-youtube me-1"></i> Watch on YouTube
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-4 mb-3">
+                            <img src="https://img.youtube.com/vi/{{ video_id }}/maxresdefault.jpg" class="img-fluid rounded" alt="{{ video_info.title }}" onerror="this.src='https://img.youtube.com/vi/{{ video_id }}/0.jpg';">
+                        </div>
+                        <div class="col-md-8">
+                            <h4>{{ video_info.title }}</h4>
+                            <p class="text-muted">By {{ video_info.author }} • {{ video_info.views|format_view_count }} views • {{ video_info.duration_seconds|format_duration }}</p>
+                            
+                            <!-- Quick Download Options -->
+                            <div class="mb-3 mt-4">
+                                <h5><i class="fas fa-bolt me-2"></i> Quick Download</h5>
+                                <div class="row">
+                                    {% for format in formats.preset_formats %}
+                                    <div class="col-auto mb-2">
+                                        {% if 'audio' in format.value %}
+                                        <a href="{{ url_for('export_analysis', analysis_id=1, format='mp3') }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-music me-1"></i> {{ format.label }}
+                                        </a>
+                                        {% else %}
+                                        <a href="{{ url_for('export_analysis', analysis_id=1, format='mp4', resolution=format.value + 'p') }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-video me-1"></i> {{ format.label }}
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Download Options -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cog me-2"></i> Advanced Download Options
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="videoFormat" class="form-label">Video Format</label>
+                                        <select class="form-select" id="videoFormat">
+                                            <option value="" selected>Select video format...</option>
+                                            <!-- Dynamically populated with JS -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="audioFormat" class="form-label">Audio Format</label>
+                                        <select class="form-select" id="audioFormat">
+                                            <option value="" selected>Select audio format...</option>
+                                            <!-- Dynamically populated with JS -->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid mt-3">
+                                <button class="btn btn-primary" id="customDownloadBtn">
+                                    <i class="fas fa-download me-2"></i> Download Custom Format
+                                </button>
+                            </div>
+                            
+                            <!-- Progress Bar (initially hidden) -->
+                            <div class="mt-3 d-none" id="downloadProgress">
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <small class="text-muted mt-1 d-block" id="progressInfo">Preparing download...</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Available Formats Table (Collapsible) -->
+                    <div class="card">
+                        <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#formatsCollapse" aria-expanded="false" aria-controls="formatsCollapse">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-list me-2"></i> All Available Formats
+                                </h5>
+                                <span class="text-muted"><i class="fas fa-chevron-down"></i></span>
+                            </div>
+                        </div>
+                        <div class="collapse" id="formatsCollapse">
+                            <div class="card-body">
+                                <ul class="nav nav-tabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="video-tab" data-bs-toggle="tab" data-bs-target="#video-formats" type="button" role="tab">Video Formats</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="audio-tab" data-bs-toggle="tab" data-bs-target="#audio-formats" type="button" role="tab">Audio Formats</button>
+                                    </li>
+                                </ul>
+                                <div class="tab-content pt-3">
+                                    <div class="tab-pane fade show active" id="video-formats" role="tabpanel">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Format ID</th>
+                                                        <th>Resolution</th>
+                                                        <th>Extension</th>
+                                                        <th>FPS</th>
+                                                        <th>Size</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="videoFormatsTable">
+                                                    <!-- Populated via JavaScript -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="audio-formats" role="tabpanel">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Format ID</th>
+                                                        <th>Codec</th>
+                                                        <th>Bitrate</th>
+                                                        <th>Extension</th>
+                                                        <th>Size</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="audioFormatsTable">
+                                                    <!-- Populated via JavaScript -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Transcript Section -->
+            <div class="card shadow mb-4" id="transcript-section">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i> Video Transcript
+                    </h5>
+                    <button id="copy-transcript-btn" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-copy me-1"></i> Copy Full Transcript
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="transcript-container bg-dark p-3 rounded" style="max-height: 350px; overflow-y: auto;">
+                        <p id="transcript-text" class="text-light mb-0">{{ transcript|default('Transcript will appear here after processing the video. Not all videos have transcripts available.') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Store formats data globally
+    const videoFormats = {{ formats.video_formats|tojson|safe if formats.video_formats else '[]' }};
+    const audioFormats = {{ formats.audio_formats|tojson|safe if formats.audio_formats else '[]' }};
+    const videoOptions = {{ formats.video_quality_options|tojson|safe if formats.video_quality_options else '[]' }};
+    const audioOptions = {{ formats.audio_quality_options|tojson|safe if formats.audio_quality_options else '[]' }};
+    const videoId = "{{ video_id }}";
+    
+    // Format file size in human-readable format
+    function formatFileSize(bytes) {
+        if (!bytes) return 'Unknown';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let size = bytes;
+        let unitIndex = 0;
+        
+        while (size >= 1024 && unitIndex < units.length - 1) {
+            size /= 1024;
+            unitIndex++;
+        }
+        
+        return `${size.toFixed(1)} ${units[unitIndex]}`;
+    }
+    
+    // Populate video format select
+    function populateVideoFormatSelect() {
+        const select = document.getElementById('videoFormat');
+        select.innerHTML = '<option value="">Select video format...</option>';
+        
+        videoOptions.forEach(format => {
+            const option = document.createElement('option');
+            option.value = format.format_id;
+            option.textContent = `${format.label} (${format.ext})`;
+            select.appendChild(option);
+        });
+    }
+    
+    // Populate audio format select
+    function populateAudioFormatSelect() {
+        const select = document.getElementById('audioFormat');
+        select.innerHTML = '<option value="">Select audio format...</option>';
+        
+        audioOptions.forEach(format => {
+            const option = document.createElement('option');
+            option.value = format.format_id;
+            option.textContent = format.label;
+            select.appendChild(option);
+        });
+    }
+    
+    // Populate video formats table
+    function populateVideoFormatsTable() {
+        const table = document.getElementById('videoFormatsTable');
+        table.innerHTML = '';
+        
+        if (videoFormats.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="6" class="text-center">No video formats available</td>';
+            table.appendChild(row);
+            return;
+        }
+        
+        videoFormats.forEach(format => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${format.format_id}</td>
+                <td>${format.resolution || 'N/A'}</td>
+                <td>${format.ext}</td>
+                <td>${format.fps || 'N/A'}</td>
+                <td>${formatFileSize(format.filesize)}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary select-format" 
+                            data-format-id="${format.format_id}" 
+                            data-format-type="video">
+                        Select
+                    </button>
+                </td>
+            `;
+            table.appendChild(row);
+        });
+    }
+    
+    // Populate audio formats table
+    function populateAudioFormatsTable() {
+        const table = document.getElementById('audioFormatsTable');
+        table.innerHTML = '';
+        
+        if (audioFormats.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="6" class="text-center">No audio formats available</td>';
+            table.appendChild(row);
+            return;
+        }
+        
+        audioFormats.forEach(format => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${format.format_id}</td>
+                <td>${format.acodec || 'N/A'}</td>
+                <td>${format.abr ? format.abr + ' kbps' : 'N/A'}</td>
+                <td>${format.ext}</td>
+                <td>${formatFileSize(format.filesize)}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary select-format" 
+                            data-format-id="${format.format_id}" 
+                            data-format-type="audio">
+                        Select
+                    </button>
+                </td>
+            `;
+            table.appendChild(row);
+        });
+    }
+    
+    // Handle format selection from the tables
+    function handleFormatSelection() {
+        document.querySelectorAll('.select-format').forEach(button => {
+            button.addEventListener('click', function() {
+                const formatId = this.getAttribute('data-format-id');
+                const formatType = this.getAttribute('data-format-type');
+                
+                if (formatType === 'video') {
+                    document.getElementById('videoFormat').value = formatId;
+                } else if (formatType === 'audio') {
+                    document.getElementById('audioFormat').value = formatId;
+                }
+            });
+        });
+    }
+    
+    // Handle custom download
+    function setupCustomDownload() {
+        const downloadBtn = document.getElementById('customDownloadBtn');
+        const progressDiv = document.getElementById('downloadProgress');
+        const progressBar = progressDiv.querySelector('.progress-bar');
+        const progressInfo = document.getElementById('progressInfo');
+        
+        downloadBtn.addEventListener('click', function() {
+            const videoFormatId = document.getElementById('videoFormat').value;
+            const audioFormatId = document.getElementById('audioFormat').value;
+            
+            if (!videoFormatId && !audioFormatId) {
+                alert('Please select at least one format');
+                return;
+            }
+            
+            // Show progress bar
+            progressDiv.classList.remove('d-none');
+            progressBar.style.width = '0%';
+            progressBar.setAttribute('aria-valuenow', 0);
+            progressInfo.textContent = 'Starting download...';
+            
+            // Prepare the request
+            const data = {
+                video_format_id: videoFormatId,
+                audio_format_id: audioFormatId,
+                format_type: videoFormatId ? 'mp4' : 'mp3'
+            };
+            
+            // Make the API call
+            fetch(`/api/download/${videoId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update progress to complete
+                    progressBar.style.width = '100%';
+                    progressBar.setAttribute('aria-valuenow', 100);
+                    progressInfo.textContent = 'Download completed!';
+                    
+                    // Redirect to the download URL after a short delay
+                    setTimeout(() => {
+                        window.location.href = data.download_url;
+                    }, 1000);
+                } else {
+                    progressBar.classList.add('bg-danger');
+                    progressInfo.textContent = `Error: ${data.message}`;
+                }
+            })
+            .catch(error => {
+                progressBar.classList.add('bg-danger');
+                progressInfo.textContent = `Error: ${error.message}`;
+                console.error('Download error:', error);
+            });
+        });
+    }
+    
+    // Initialize everything when the document is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        populateVideoFormatSelect();
+        populateAudioFormatSelect();
+        populateVideoFormatsTable();
+        populateAudioFormatsTable();
+        handleFormatSelection();
+        setupCustomDownload();
+        setupTranscriptCopy();
+        checkForTranscript();
+    });
+    
+    // Handle transcript copy button
+    function setupTranscriptCopy() {
+        const copyButton = document.getElementById('copy-transcript-btn');
+        if (!copyButton) return;
+        
+        copyButton.addEventListener('click', function() {
+            const transcriptText = document.getElementById('transcript-text').textContent;
+            if (!transcriptText || transcriptText.includes('Transcript will appear here')) {
+                alert('No transcript available to copy.');
+                return;
+            }
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(transcriptText)
+                .then(() => {
+                    // Change button text temporarily
+                    const originalText = copyButton.innerHTML;
+                    copyButton.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+                    setTimeout(() => {
+                        copyButton.innerHTML = originalText;
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                    alert('Failed to copy transcript. Please try again.');
+                });
+        });
+    }
+    
+    // Check if there's a transcript available and update the UI
+    function checkForTranscript() {
+        fetch(`/api/video/${videoId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.transcript) {
+                    // Clean and format the transcript
+                    let formattedTranscript = data.transcript
+                        // Clean the transcript text
+                        .replace(/\n\n/g, '\n') // Remove double line breaks
+                        .replace(/align:start position:\d+%/g, '') // Remove alignment markers
+                        .replace(/position:\d+%/g, '') // Remove position markers
+                        .replace(/([.!?])\s+/g, '$1\n\n') // Add line breaks after sentences
+                        .trim();
+                    
+                    // If transcript is still malformatted, try a more aggressive approach
+                    if (formattedTranscript.includes('WEBVTT') || formattedTranscript.includes('-->')) {
+                        // More aggressive cleaning for heavily formatted transcripts
+                        const lines = formattedTranscript.split('\n');
+                        const cleanedLines = lines.filter(line => {
+                            // Filter out timestamp lines and metadata
+                            return !line.includes('-->') && 
+                                  !line.includes('WEBVTT') && 
+                                  !/^\d+$/.test(line) &&
+                                  !line.includes('align:') &&
+                                  !line.includes('position:');
+                        });
+                        
+                        formattedTranscript = cleanedLines.join('\n');
+                        
+                        // Add paragraph breaks for readability
+                        formattedTranscript = formattedTranscript
+                            .replace(/([.!?])\s+/g, '$1\n\n')
+                            .trim();
+                    }
+                    
+                    // Update the transcript text
+                    document.getElementById('transcript-text').textContent = formattedTranscript;
+                    document.getElementById('transcript-section').classList.remove('d-none');
+                } else {
+                    // No transcript available
+                    document.getElementById('transcript-text').textContent = 'No transcript available for this video.';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching transcript:', error);
+                document.getElementById('transcript-text').textContent = 'Error loading transcript. Please try again later.';
+            });
+    }
+</script>
+{% endblock %}

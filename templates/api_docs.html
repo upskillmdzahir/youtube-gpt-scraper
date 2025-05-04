@@ -1,0 +1,178 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-body">
+                <h1 class="card-title mb-4">
+                    <i class="fas fa-code me-2"></i>
+                    API Documentation
+                </h1>
+                
+                <div class="alert alert-primary">
+                    <p class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Use our API to integrate YouTube video analysis into your own applications.
+                    </p>
+                </div>
+                
+                <section class="mb-5">
+                    <h2>Basic Usage</h2>
+                    <p>Our API allows you to retrieve video information, transcripts, and AI-generated summaries for any YouTube video with available captions.</p>
+                    
+                    <div class="card bg-light mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">API Endpoint</h5>
+                            <pre class="mb-0"><code>GET /api/video/{VIDEO_ID}</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Path Parameters</h5>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>VIDEO_ID</code></td>
+                                    <td>The YouTube video ID (the 11-character code from the video URL)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Example Request</h5>
+                        <pre><code>curl https://{{ request.host }}/api/video/dQw4w9WgXcQ</code></pre>
+                    </div>
+                </section>
+                
+                <section class="mb-5">
+                    <h2>Response Format</h2>
+                    <p>The API returns a JSON object with the following properties:</p>
+                    
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>title</code></td>
+                                <td>String</td>
+                                <td>The title of the YouTube video</td>
+                            </tr>
+                            <tr>
+                                <td><code>views</code></td>
+                                <td>Number</td>
+                                <td>The view count of the video (if available)</td>
+                            </tr>
+                            <tr>
+                                <td><code>transcript</code></td>
+                                <td>String</td>
+                                <td>The full transcript text of the video</td>
+                            </tr>
+                            <tr>
+                                <td><code>summary</code></td>
+                                <td>String</td>
+                                <td>An AI-generated summary of the video content</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="card bg-light mt-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Example Response</h5>
+<pre><code>{
+  "title": "Never Gonna Give You Up",
+  "views": 1234567890,
+  "transcript": "We're no strangers to love...",
+  "summary": "This is a music video for Rick Astley's hit song 'Never Gonna Give You Up'..."
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="mb-5">
+                    <h2>Error Handling</h2>
+                    <p>The API uses standard HTTP status codes to indicate success or failure:</p>
+                    
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Status Code</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>200 OK</td>
+                                <td>The request was successful</td>
+                            </tr>
+                            <tr>
+                                <td>400 Bad Request</td>
+                                <td>Invalid video ID format</td>
+                            </tr>
+                            <tr>
+                                <td>404 Not Found</td>
+                                <td>Video not found or information could not be retrieved</td>
+                            </tr>
+                            <tr>
+                                <td>500 Internal Server Error</td>
+                                <td>An error occurred while processing the request</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="card bg-light mt-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Error Response Format</h5>
+<pre><code>{
+  "error": "Error message description",
+  "video_id": "dQw4w9WgXcQ"
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="mb-4">
+                    <h2>Usage Notes</h2>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item bg-transparent">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            If a video has been previously analyzed, results are returned from our cache for faster performance.
+                        </li>
+                        <li class="list-group-item bg-transparent">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Not all videos have transcripts available. If a transcript is not available, the API will return a message indicating this.
+                        </li>
+                        <li class="list-group-item bg-transparent">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            The summary is generated using OpenAI's GPT models. In case of API quota limitations, a fallback summary might be provided.
+                        </li>
+                    </ul>
+                </section>
+                
+                <div class="d-flex justify-content-between mt-5">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to Home
+                    </a>
+                    <a href="https://github.com/yourusername/youtube-gpt-analyzer" target="_blank" class="btn btn-outline-secondary">
+                        <i class="fab fa-github me-2"></i>
+                        GitHub Repository
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
